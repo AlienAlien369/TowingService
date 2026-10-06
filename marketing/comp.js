@@ -234,7 +234,7 @@ scn("book", (root, sc) => {
   card._d = "flex";
   const lab = h("div", { cls: "disp", html: `Your fare<br><span style="font-size:.5em;color:#9aa0a8;letter-spacing:.1em">incl. GST · no haggling</span>`, css: { fontSize: (LAND ? 56 : 52) + "px", textAlign: LAND ? "center" : "left", color: "#fff" } }, card);
   const price = h("div", { cls: "disp", html: "₹0", css: { fontSize: (LAND ? 190 : 120) + "px", color: BRAND, lineHeight: 1 } }, card);
-  const stamp = h("div", { cls: "disp", html: "No<br>haggling", css: A({ left: (LAND ? 1640 : W - 330) + "px", top: (LAND ? 470 : 130) + "px", fontSize: (LAND ? 62 : 54) + "px", color: RED, border: `8px solid ${RED}`, padding: "10px 24px", borderRadius: "16px", textAlign: "center", background: "rgba(255,255,255,.96)", textShadow: "none" }) }, root);
+  const stamp = h("div", { cls: "disp", html: "No<br>haggling", css: A({ left: (LAND ? 1640 : W - 350) + "px", top: (LAND ? 470 : 1020) + "px", fontSize: (LAND ? 62 : 54) + "px", color: RED, border: `8px solid ${RED}`, padding: "10px 24px", borderRadius: "16px", textAlign: "center", background: "rgba(255,255,255,.96)", textShadow: "none" }) }, root);
   const t1 = w[0].start - 0.05, t2 = w[2].start - 0.05, t3 = w[4].start - 0.1, tg = w[9].start - 0.2;
   return (lt, t) => {
     const f2 = seg(t, t2, t2 + 0.35, E.io), f3 = seg(t, t3, t3 + 0.35, E.io);

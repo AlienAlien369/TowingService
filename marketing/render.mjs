@@ -35,25 +35,44 @@ if (cmd === "test") {
     console.log("shot", t);
   }
 } else {
+  // Streams frames straight into ffmpeg (no PNG sequence on disk): out/<mode>-video.mp4, visually lossless x264.
+  const { spawn } = await import("node:child_process");
   const workers = Number(arg ?? 4);
   const total = Math.round(TL.total * TL.fps);
-  const out = path.join(dir, "frames", mode);
-  fs.mkdirSync(out, { recursive: true });
-  let next = 0, done = 0;
+  const cache = path.join(dir, "frames", mode);
+  fs.mkdirSync(cache, { recursive: true }); fs.mkdirSync(path.join(dir, "out"), { recursive: true });
+  const outFile = path.join(dir, "out", `${mode}-video.mp4`);
+  const ff = spawn("ffmpeg", ["-y", "-loglevel", "error", "-f", "image2pipe", "-framerate", String(TL.fps), "-c:v", "png", "-i", "-", "-c:v", "libx264", "-preset", "slow", "-crf", "14", "-pix_fmt", "yuv420p", "-colorspace", "bt709", "-color_primaries", "bt709", "-color_trc", "bt709", "-movflags", "+faststart", outFile], { stdio: ["pipe", "inherit", "inherit"] });
+  const ffDone = new Promise((r) => ff.on("close", r));
+  const ready = new Map();
+  let next = 0, written = 0;
   const t0 = Date.now();
+  const writer = (async () => {
+    while (written < total) {
+      if (!ready.has(written)) { await new Promise((r) => setTimeout(r, 20)); continue; }
+      const buf = ready.get(written); ready.delete(written);
+      if (!ff.stdin.write(buf)) await new Promise((r) => ff.stdin.once("drain", r));
+      written++;
+      if (written % 60 === 0) console.log(`${written}/${total} ${(((Date.now() - t0) / written) / 1000).toFixed(2)}s/frame`);
+    }
+    ff.stdin.end();
+  })();
   await Promise.all(Array.from({ length: workers }, async () => {
     const page = await open();
     while (true) {
+      while (next - written > 32) await new Promise((r) => setTimeout(r, 50));
       const i = next++;
       if (i >= total) break;
-      const f = path.join(out, `f${String(i).padStart(5, "0")}.png`);
-      if (!fs.existsSync(f)) {
+      const f = path.join(cache, `f${String(i).padStart(5, "0")}.png`);
+      let buf = fs.existsSync(f) && fs.statSync(f).size > 1000 ? fs.readFileSync(f) : null;
+      if (!buf) {
         await page.evaluate((x) => window.renderAt(x), i / TL.fps);
-        await page.screenshot({ path: f, clip: { x: 0, y: 0, width: W, height: H }, animations: "disabled" });
-      }
-      if (++done % 60 === 0) console.log(`${done}/${total} ${(((Date.now() - t0) / done) / 1000).toFixed(2)}s/frame`);
+        buf = await page.screenshot({ clip: { x: 0, y: 0, width: W, height: H }, animations: "disabled" });
+      } else fs.unlinkSync(f);
+      ready.set(i, buf);
     }
   }));
+  await writer; await ffDone;
   console.log("frames done", total);
 }
 await browser.close();
