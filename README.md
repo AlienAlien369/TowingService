@@ -65,6 +65,15 @@ See `.env.example`. Everything business-facing (brand, phones, address, GST, pri
 - [Tracking plan](docs/tracking-plan.md) — analytics events and funnels
 - [OpenAPI](docs/openapi.yaml) — HTTP surface for the route handlers
 
+## Live deployments
+| Where | URL | Notes |
+|---|---|---|
+| Vercel (primary) | https://towingservice.vercel.app | Project `towingservice`, auto-deploys from `main` on GitHub |
+| Render (Docker) | https://towingservice.onrender.com | Service `TowingService`, free plan (sleeps when idle), auto-deploys from `main` |
+| Neon Postgres | project `TowingService` (Singapore) | Shared by both deployments; migrations applied with `prisma migrate deploy` |
+
+Both deployments need `SMTP_*` (and `ADMIN_EMAIL`) set to a real mail provider before customers/admins can sign in – see `docs/DEPLOY.md`.
+
 ## Before going live — checklist
 - [ ] Replace placeholder brand, phones, address, GSTIN/PAN, SAC code and GST rate (confirm with your CA) in Admin → Settings.
 - [ ] **Have a lawyer review** every seeded legal page and both partner-agreement templates (they are templates, not legal advice).
