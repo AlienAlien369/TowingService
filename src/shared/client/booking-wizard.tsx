@@ -167,7 +167,7 @@ export function BookingWizard(p: WizardProps) {
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_440px]">
-      <div>
+      <div className="min-w-0">
         {/* Stepper */}
         <ol className="mb-6 flex items-center gap-1.5" aria-label="Progress">
           {b.steps.map((s, i) => (

@@ -73,7 +73,7 @@ export function TrackView({ initial, d, locale, isNew, loginHref, brandName, map
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_440px]">
-      <div className="space-y-4">
+      <div className="min-w-0 space-y-4">
         {isNew && <Alert tone="ok" title={d.booking.successTitle}>{d.booking.successSub}</Alert>}
 
         <Card className="overflow-hidden">
@@ -85,13 +85,13 @@ export function TrackView({ initial, d, locale, isNew, loginHref, brandName, map
             <Badge tone={data.status === "COMPLETED" ? "ok" : data.status === "CANCELLED" ? "danger" : "brand"} className="!px-3 !py-1.5 text-sm">{statusTitle}</Badge>
           </div>
           {!["CANCELLED"].includes(data.status) && (
-            <ol className="grid grid-cols-6 gap-1 p-4" aria-label={t.timeline}>
+            <ol className="grid grid-cols-6 gap-1 p-3 sm:p-4" aria-label={t.timeline}>
               {FLOW.map((s, i) => (
                 <li key={s} className="text-center">
                   <span className={cn("mx-auto grid size-8 place-items-center rounded-full text-xs font-extrabold", i < idx ? "bg-ink text-white" : i === idx ? "bg-brand text-ink ring-2 ring-ink" : "bg-ink-soft text-muted")} aria-current={i === idx ? "step" : undefined}>
                     {i < idx || data.status === "COMPLETED" ? <CheckCircle2 className="size-4" /> : i + 1}
                   </span>
-                  <span className={cn("mt-1 block text-[10px] font-bold leading-tight sm:text-xs", i === idx ? "text-ink" : "text-muted")}>{t.steps[s]}</span>
+                  <span className={cn("mt-1 block break-words text-[9px] font-bold leading-tight sm:text-xs", i === idx ? "text-ink" : "text-muted")}>{t.steps[s]}</span>
                 </li>
               ))}
             </ol>
@@ -102,7 +102,7 @@ export function TrackView({ initial, d, locale, isNew, loginHref, brandName, map
 
         {data.driver && (
           <Card className="p-5">
-            <div className="flex items-start justify-between gap-3">
+            <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="flex items-center gap-3">
                 <span className="grid size-14 place-items-center rounded-full bg-brand text-ink"><Truck className="size-7" /></span>
                 <div>
@@ -198,7 +198,7 @@ export function TrackView({ initial, d, locale, isNew, loginHref, brandName, map
         )}
       </div>
 
-      <aside className="space-y-4">
+      <aside className="min-w-0 space-y-4">
         <div className="sticky top-28 space-y-4">
           <Map className="h-[340px] w-full rounded-2xl border border-line shadow-card" center={[data.pickup.lat, data.pickup.lng]} zoom={14} tileUrl={map.tileUrl} markers={markers} fitKey={`${markers.length}|${data.driver?.lat?.toFixed(3)}|${data.status}`} />
           <Card className="p-4">

@@ -12,3 +12,12 @@ coverage
 .vercel
 .env.*.local
 !.env.example
+
+marketing/.sessions.*
+marketing/frames
+marketing/out
+marketing/node_modules
+marketing/audio/*.mp3
+marketing/audio/*.wav
+marketing/screens
+marketing/*.log
