@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>RoadSaathi – demo film composition</title>
+<style>
+  @font-face { font-family: "Barlow Condensed"; font-weight: 600; src: url("/nm/@fontsource/barlow-condensed/files/barlow-condensed-latin-600-normal.woff2") format("woff2"); }
+  @font-face { font-family: "Barlow Condensed"; font-weight: 700; src: url("/nm/@fontsource/barlow-condensed/files/barlow-condensed-latin-700-normal.woff2") format("woff2"); }
+  @font-face { font-family: "Barlow Condensed"; font-weight: 800; src: url("/nm/@fontsource/barlow-condensed/files/barlow-condensed-latin-800-normal.woff2") format("woff2"); }
+  @font-face { font-family: "Inter"; font-weight: 100 900; src: url("/nm/@fontsource-variable/inter/files/inter-latin-wght-normal.woff2") format("woff2"); }
+  @font-face { font-family: "Noto Deva"; font-weight: 100 900; src: url("/nm/@fontsource-variable/noto-sans-devanagari/files/noto-sans-devanagari-devanagari-wght-normal.woff2") format("woff2"); }
+  html, body { margin: 0; background: #000; overflow: hidden; }
+  #stage { position: absolute; left: 0; top: 0; width: var(--W); height: var(--H); overflow: hidden; background: #14161a; font-family: "Inter", sans-serif; color: #fff; -webkit-font-smoothing: antialiased; }
+  #stage * { box-sizing: border-box; }
+  .disp { font-family: "Barlow Condensed", "Noto Deva", sans-serif; font-weight: 800; text-transform: uppercase; line-height: 0.92; letter-spacing: 0.01em; }
+  .abs { position: absolute; }
+  img { display: block; max-width: none; }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<script type="module" src="/comp.js"></script>
+</body>
+</html>
