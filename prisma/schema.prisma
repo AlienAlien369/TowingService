@@ -1,0 +1,608 @@
+// RoadSaathi – modular monolith data model.
+// Each block is owned by one module (see docs/ARCHITECTURE.md); modules only reach into
+// each other's tables through the owning module's service functions.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ───────────────────────── identity (module: auth) ─────────────────────────
+enum Role {
+  CUSTOMER
+  DRIVER
+  COMPANY_OWNER
+  DISPATCHER
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum OtpChannel {
+  EMAIL
+  SMS
+}
+
+model User {
+  id              String    @id @default(cuid())
+  email           String?   @unique
+  phone           String?   @unique
+  name            String?
+  role            Role      @default(CUSTOMER)
+  locale          String    @default("en")
+  isActive        Boolean   @default(true)
+  emailVerifiedAt DateTime?
+  phoneVerifiedAt DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  sessions  Session[]
+  bookings  Booking[]
+  driver    Driver?
+  companies Company[] @relation("CompanyOwner")
+  leads     Lead[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ip        String?
+  userAgent String?
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model OtpChallenge {
+  id         String     @id @default(cuid())
+  identifier String // lower-cased email or E.164 phone
+  channel    OtpChannel
+  purpose    String     @default("login")
+  codeHash   String
+  attempts   Int        @default(0)
+  expiresAt  DateTime
+  consumedAt DateTime?
+  ip         String?
+  createdAt  DateTime   @default(now())
+
+  @@index([identifier, createdAt])
+}
+
+model RateLimit {
+  key     String   @id
+  count   Int
+  resetAt DateTime
+}
+
+// ───────────────────────── platform settings & content (module: content/settings) ─────────────────────────
+model SiteSetting {
+  key       String   @id // brand | contact | business | pricing | dispatch | payments | maps | notifications | seo
+  value     Json
+  updatedAt DateTime @updatedAt
+  updatedBy String?
+}
+
+enum PageKind {
+  LEGAL
+  INFO
+}
+
+model Page {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  kind        PageKind @default(LEGAL)
+  title       Json // { en, hi }
+  body        Json // { en, hi } – markdown, supports {{brand}} style placeholders
+  version     Int      @default(1)
+  isPublished Boolean  @default(true)
+  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now())
+}
+
+model Faq {
+  id        String  @id @default(cuid())
+  category  String  @default("general")
+  question  Json
+  answer    Json
+  sortOrder Int     @default(0)
+  isActive  Boolean @default(true)
+}
+
+model Testimonial {
+  id        String  @id @default(cuid())
+  name      String
+  locality  String?
+  rating    Int     @default(5)
+  text      Json
+  sortOrder Int     @default(0)
+  isActive  Boolean @default(true)
+}
+
+enum AreaStatus {
+  ACTIVE
+  COMING_SOON
+}
+
+model Area {
+  id          String     @id @default(cuid())
+  slug        String     @unique
+  city        String     @default("Delhi")
+  name        Json
+  description Json
+  status      AreaStatus @default(ACTIVE)
+  lat         Float
+  lng         Float
+  radiusKm    Float      @default(6)
+  pincodes    String?
+  sortOrder   Int        @default(0)
+  isActive    Boolean    @default(true)
+}
+
+enum LeadKind {
+  CONTACT
+  CALLBACK
+  PARTNER_INQUIRY
+  COMING_SOON_AREA
+}
+
+model Lead {
+  id        String   @id @default(cuid())
+  kind      LeadKind @default(CONTACT)
+  name      String?
+  phone     String?
+  email     String?
+  message   String?
+  meta      Json?
+  status    String   @default("NEW") // NEW | CONTACTED | CLOSED
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+// ───────────────────────── catalog & pricing (module: catalog, pricing) ─────────────────────────
+model VehicleType {
+  id          String  @id @default(cuid())
+  slug        String  @unique
+  name        Json
+  description Json
+  icon        String  @default("car")
+  maxWeightKg Int?
+  sortOrder   Int     @default(0)
+  isActive    Boolean @default(true)
+
+  rateCards RateCard[]
+  bookings  Booking[]
+  drivers   Driver[]
+}
+
+model Service {
+  id               String  @id @default(cuid())
+  slug             String  @unique
+  name             Json
+  shortDescription Json
+  description      Json
+  icon             String  @default("truck")
+  requiresDrop     Boolean @default(true) // towing needs a drop; on-spot services do not
+  etaMinutes       Int     @default(30)
+  sortOrder        Int     @default(0)
+  isFeatured       Boolean @default(false)
+  isActive         Boolean @default(true)
+
+  rateCards RateCard[]
+  bookings  Booking[]
+  drivers   Driver[]
+}
+
+model RateCard {
+  id            String      @id @default(cuid())
+  vehicleTypeId String
+  serviceId     String
+  vehicleType   VehicleType @relation(fields: [vehicleTypeId], references: [id], onDelete: Cascade)
+  service       Service     @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  baseFare      Int // paise, covers `includedKm`
+  includedKm    Float       @default(5)
+  perKm         Int // paise per km beyond includedKm
+  minFare       Int // paise
+  waitingPerMin Int         @default(0) // paise, after 10 free minutes
+  isActive      Boolean     @default(true)
+
+  @@unique([vehicleTypeId, serviceId])
+}
+
+// ───────────────────────── providers (module: providers) ─────────────────────────
+enum ProviderStatus {
+  PENDING // applied, awaiting review
+  APPROVED // approved, contract awaiting signature
+  ACTIVE // contract signed, can take jobs
+  REJECTED
+  SUSPENDED
+}
+
+model Company {
+  id              String         @id @default(cuid())
+  ownerId         String
+  owner           User           @relation("CompanyOwner", fields: [ownerId], references: [id])
+  legalName       String
+  tradeName       String?
+  gstin           String?
+  pan             String?
+  address         String
+  city            String         @default("Delhi")
+  contactEmail    String
+  contactPhone    String
+  status          ProviderStatus @default(PENDING)
+  commissionBp    Int? // basis points override; null = platform default
+  reviewNote      String?
+  bankAccountName String?
+  bankAccountNo   String?
+  bankIfsc        String?
+  upiId           String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  drivers   Driver[]
+  trucks    Truck[]
+  contracts ProviderContract[]
+  ledger    LedgerEntry[]
+}
+
+model Driver {
+  id              String         @id @default(cuid())
+  userId          String         @unique
+  user            User           @relation(fields: [userId], references: [id])
+  companyId       String? // null => independent operator
+  company         Company?       @relation(fields: [companyId], references: [id])
+  name            String
+  phone           String
+  email           String
+  licenseNo       String?
+  licenseExpiry   DateTime?
+  pan             String?
+  address         String?
+  status          ProviderStatus @default(PENDING)
+  commissionBp    Int?
+  reviewNote      String?
+  isOnline        Boolean        @default(false)
+  lastLat         Float?
+  lastLng         Float?
+  lastSeenAt      DateTime?
+  ratingAvg       Float          @default(0)
+  ratingCount     Int            @default(0)
+  bankAccountName String?
+  bankAccountNo   String?
+  bankIfsc        String?
+  upiId           String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  vehicleTypes VehicleType[]
+  services     Service[]
+  trucks       Truck[]
+  bookings     Booking[]
+  offers       DispatchOffer[]
+  contracts    ProviderContract[]
+  ledger       LedgerEntry[]
+
+  @@index([companyId])
+  @@index([isOnline, status])
+}
+
+enum TruckKind {
+  FLATBED
+  WHEEL_LIFT
+  HOOK_CRANE
+  HYDRAULIC_HEAVY
+  BIKE_CARRIER
+  SERVICE_VAN
+}
+
+model Truck {
+  id              String    @id @default(cuid())
+  registrationNo  String    @unique
+  kind            TruckKind @default(FLATBED)
+  make            String?
+  model           String?
+  capacityKg      Int?
+  insuranceExpiry DateTime?
+  permitExpiry    DateTime?
+  fitnessExpiry   DateTime?
+  driverId        String?
+  driver          Driver?   @relation(fields: [driverId], references: [id])
+  companyId       String?
+  company         Company?  @relation(fields: [companyId], references: [id])
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+}
+
+enum ContractStatus {
+  SENT
+  SIGNED
+  TERMINATED
+}
+
+enum ContractParty {
+  INDIVIDUAL
+  COMPANY
+}
+
+model ContractTemplate {
+  id        String        @id @default(cuid())
+  party     ContractParty
+  version   Int           @default(1)
+  title     Json
+  body      Json // { en, hi } markdown with {{placeholders}}
+  isActive  Boolean       @default(true)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  contracts ProviderContract[]
+
+  @@unique([party, version])
+}
+
+model ProviderContract {
+  id              String           @id @default(cuid())
+  templateId      String
+  template        ContractTemplate @relation(fields: [templateId], references: [id])
+  templateVersion Int
+  party           ContractParty
+  companyId       String?
+  company         Company?         @relation(fields: [companyId], references: [id])
+  driverId        String?
+  driver          Driver?          @relation(fields: [driverId], references: [id])
+  title           String
+  renderedBody    String // immutable snapshot of what the provider agreed to
+  commissionBp    Int
+  status          ContractStatus   @default(SENT)
+  signedName      String?
+  signedAt        DateTime?
+  signedIp        String?
+  signedVia       String? // e.g. "EMAIL_OTP"
+  effectiveFrom   DateTime?
+  expiresAt       DateTime?
+  createdAt       DateTime         @default(now())
+
+  @@index([companyId])
+  @@index([driverId])
+}
+
+// ───────────────────────── bookings & dispatch (module: bookings, dispatch) ─────────────────────────
+enum BookingStatus {
+  PENDING_DISPATCH
+  OFFERED
+  ASSIGNED
+  EN_ROUTE
+  ARRIVED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  NO_DRIVER_FOUND
+}
+
+enum PaymentMethod {
+  CASH
+  RAZORPAY
+}
+
+enum PaymentStatus {
+  UNPAID
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+model Booking {
+  id             String        @id @default(cuid())
+  code           String        @unique
+  customerId     String?
+  customer       User?         @relation(fields: [customerId], references: [id])
+  contactName    String
+  contactPhone   String
+  contactEmail   String?
+  vehicleTypeId  String
+  vehicleType    VehicleType   @relation(fields: [vehicleTypeId], references: [id])
+  serviceId      String
+  service        Service       @relation(fields: [serviceId], references: [id])
+  vehicleNumber  String?
+  vehicleDetails String?
+  notes          String?
+  pickupAddress  String
+  pickupLat      Float
+  pickupLng      Float
+  dropAddress    String?
+  dropLat        Float?
+  dropLng        Float?
+  distanceKm     Float         @default(0)
+  durationMin    Int?
+  scheduledFor   DateTime?
+  fare           Json // full quote breakdown snapshot
+  subtotal       Int // paise (taxable value)
+  gstAmount      Int // paise
+  total          Int // paise
+  paymentMethod  PaymentMethod @default(CASH)
+  paymentStatus  PaymentStatus @default(UNPAID)
+  status         BookingStatus @default(PENDING_DISPATCH)
+  startPin       String // 4-digit PIN customer shares with driver at pickup
+  driverId       String?
+  driver         Driver?       @relation(fields: [driverId], references: [id])
+  cancelReason   String?
+  cancelledBy    String?
+  dispatchRound  Int           @default(0)
+  assignedAt     DateTime?
+  completedAt    DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  events   BookingEvent[]
+  offers   DispatchOffer[]
+  payments Payment[]
+  invoice  Invoice?
+  review   Review?
+  ledger   LedgerEntry[]
+
+  @@index([status, createdAt])
+  @@index([customerId])
+  @@index([driverId, status])
+}
+
+model BookingEvent {
+  id        String        @id @default(cuid())
+  bookingId String
+  booking   Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  status    BookingStatus
+  actorType String // SYSTEM | CUSTOMER | DRIVER | ADMIN
+  actorId   String?
+  note      String?
+  lat       Float?
+  lng       Float?
+  createdAt DateTime      @default(now())
+
+  @@index([bookingId, createdAt])
+}
+
+enum OfferStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  EXPIRED
+  CANCELLED
+}
+
+model DispatchOffer {
+  id         String      @id @default(cuid())
+  bookingId  String
+  booking    Booking     @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  driverId   String
+  driver     Driver      @relation(fields: [driverId], references: [id])
+  status     OfferStatus @default(PENDING)
+  distanceKm Float
+  round      Int         @default(1)
+  expiresAt  DateTime
+  createdAt  DateTime    @default(now())
+
+  @@index([driverId, status])
+  @@index([bookingId, status])
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  bookingId String   @unique
+  booking   Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  driverId  String?
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+}
+
+// ───────────────────────── payments, invoicing, ledger (module: payments, invoicing) ─────────────────────────
+model Payment {
+  id                String        @id @default(cuid())
+  bookingId         String
+  booking           Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  method            PaymentMethod
+  status            PaymentStatus @default(PENDING)
+  amount            Int // paise
+  providerOrderId   String?
+  providerPaymentId String?
+  raw               Json?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  @@index([bookingId])
+  @@index([providerOrderId])
+}
+
+model Invoice {
+  id            String   @id @default(cuid())
+  number        String   @unique
+  bookingId     String   @unique
+  booking       Booking  @relation(fields: [bookingId], references: [id])
+  issuedAt      DateTime @default(now())
+  seller        Json // legal name, GSTIN, address, state code snapshot
+  buyer         Json // name, phone, email, GSTIN (optional), state code
+  lineItems     Json
+  sacCode       String
+  placeOfSupply String
+  taxableValue  Int
+  cgst          Int      @default(0)
+  sgst          Int      @default(0)
+  igst          Int      @default(0)
+  total         Int
+}
+
+model InvoiceCounter {
+  fy  String @id // e.g. 2026-27
+  seq Int    @default(0)
+}
+
+model LedgerEntry {
+  id            String    @id @default(cuid())
+  bookingId     String
+  booking       Booking   @relation(fields: [bookingId], references: [id])
+  driverId      String
+  driver        Driver    @relation(fields: [driverId], references: [id])
+  companyId     String? // payee when driver belongs to a company
+  company       Company?  @relation(fields: [companyId], references: [id])
+  gross         Int // paise charged to customer (incl. GST)
+  commission    Int // platform commission, paise
+  net           Int // owed to provider, paise
+  status        String    @default("PENDING") // PENDING | SETTLED
+  settledAt     DateTime?
+  settlementRef String?
+  createdAt     DateTime  @default(now())
+
+  @@unique([bookingId])
+  @@index([driverId, status])
+}
+
+// ───────────────────────── platform (module: notifications, audit, analytics) ─────────────────────────
+model NotificationLog {
+  id        String   @id @default(cuid())
+  channel   String // EMAIL | SMS
+  to        String
+  template  String
+  subject   String?
+  body      String
+  status    String // SENT | FAILED
+  provider  String?
+  error     String?
+  bookingId String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([to])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  actorId   String?
+  actorRole String?
+  action    String
+  entity    String
+  entityId  String?
+  meta      Json?
+  ip        String?
+  createdAt DateTime @default(now())
+
+  @@index([entity, entityId])
+  @@index([createdAt])
+}
+
+model AnalyticsEvent {
+  id        String   @id @default(cuid())
+  name      String
+  props     Json?
+  userId    String?
+  anonId    String?
+  path      String?
+  createdAt DateTime @default(now())
+
+  @@index([name, createdAt])
+}

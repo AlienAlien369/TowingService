@@ -1,0 +1,94 @@
+# Local / self-hosted stack.
+#   docker compose up -d db mailpit      -> just infra (run the app with `npm run dev`)
+#   docker compose up --build            -> full stack (db + mailpit + migrate/seed + app on :3000)
+# Production on Vercel uses Neon instead of the `db` service: set DATABASE_URL accordingly.
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: towing
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d towing"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  mailpit:
+    image: axllent/mailpit:latest
+    restart: unless-stopped
+    ports:
+      - "1025:1025" # SMTP
+      - "8025:8025" # Web UI – every email the app sends lands here in dev
+
+  migrate:
+    build:
+      context: .
+      target: tools
+    command: sh -c "npx prisma migrate deploy && npx tsx prisma/seed.ts"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/towing
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@roadsaathi.example}
+      BRAND_NAME: ${BRAND_NAME:-RoadSaathi}
+      SEED_DEMO: ${SEED_DEMO:-true}   # demo drivers/company; set to false for real deployments
+    depends_on:
+      db:
+        condition: service_healthy
+
+  app:
+    build:
+      context: .
+      target: runner
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      APP_URL: ${APP_URL:-http://localhost:3000}
+      AUTH_SECRET: ${AUTH_SECRET:-dev-only-secret-change-me-please-0123456789}
+      BRAND_NAME: ${BRAND_NAME:-RoadSaathi}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@roadsaathi.example}
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/towing
+      SMTP_HOST: mailpit
+      SMTP_PORT: "1025"
+      SMS_PROVIDER: ${SMS_PROVIDER:-mock}
+      EXPOSE_DEV_OTP: ${EXPOSE_DEV_OTP:-true}   # shows OTP codes on screen (demo only!) – set false in production
+      MAP_PROVIDER: ${MAP_PROVIDER:-osm}
+      GOOGLE_MAPS_API_KEY: ${GOOGLE_MAPS_API_KEY:-}
+      RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID:-}
+      RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET:-}
+      RAZORPAY_WEBHOOK_SECRET: ${RAZORPAY_WEBHOOK_SECRET:-}
+      CRON_SECRET: ${CRON_SECRET:-dev-cron-secret}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      mailpit:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # Calls the dispatch/expiry cron endpoint every minute (replaces Vercel Cron when self-hosting).
+  cron:
+    image: curlimages/curl:latest
+    restart: unless-stopped
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - "while true; do sleep 60; curl -s -H \"Authorization: Bearer $${CRON_SECRET}\" http://app:3000/api/cron/tick > /dev/null; done"
+    environment:
+      CRON_SECRET: ${CRON_SECRET:-dev-cron-secret}
+    depends_on:
+      - app
+
+volumes:
+  pgdata:

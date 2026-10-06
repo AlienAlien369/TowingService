@@ -1,0 +1,101 @@
+openapi: 3.0.3
+info:
+  title: RoadSaathi HTTP API
+  version: 1.0.0
+  description: |
+    Route handlers exposed by the Next.js app. Most mutations are Next.js Server Actions (not part of this contract).
+    Authentication is a session cookie (`rs_session`) obtained via the OTP sign-in flow.
+servers:
+  - url: http://localhost:3000
+paths:
+  /api/health:
+    get:
+      summary: Liveness + database check
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { $ref: "#/components/schemas/Health" } } } }
+        "503": { description: Database unreachable }
+  /api/geo/search:
+    get:
+      summary: Address search (OSM Nominatim or Google, biased to Delhi)
+      parameters:
+        - { name: q, in: query, required: true, schema: { type: string, minLength: 3, maxLength: 120 } }
+      responses:
+        "200": { description: Matches, content: { application/json: { schema: { type: object, properties: { results: { type: array, items: { $ref: "#/components/schemas/Place" } } } } } } }
+        "429": { description: Rate limited (90 / 10 min / IP) }
+  /api/geo/reverse:
+    get:
+      summary: Reverse geocode
+      parameters:
+        - { name: lat, in: query, required: true, schema: { type: number, minimum: -90, maximum: 90 } }
+        - { name: lng, in: query, required: true, schema: { type: number, minimum: -180, maximum: 180 } }
+      responses:
+        "200": { description: Address label, content: { application/json: { schema: { type: object, properties: { label: { type: string } } } } } }
+        "400": { description: Bad coordinates }
+  /api/track/{code}:
+    get:
+      summary: Live booking status for the tracking page (booking code acts as a bearer secret)
+      parameters:
+        - { name: code, in: path, required: true, schema: { type: string, pattern: "^[A-Za-z0-9-]{4,20}$" } }
+      responses:
+        "200": { description: Tracking snapshot, content: { application/json: { schema: { $ref: "#/components/schemas/Track" } } } }
+        "404": { description: Unknown code }
+        "429": { description: Rate limited }
+  /api/driver/state:
+    get:
+      summary: Driver offers and active job (driver session required)
+      security: [{ session: [] }]
+      responses:
+        "200": { description: State }
+        "401": { description: Not signed in }
+        "403": { description: Not a driver }
+  /api/driver/location:
+    post:
+      summary: Driver GPS ping (max 30/min)
+      security: [{ session: [] }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, required: [lat, lng], properties: { lat: { type: number, minimum: 6, maximum: 38 }, lng: { type: number, minimum: 68, maximum: 98 } } } } }
+      responses:
+        "200": { description: Stored }
+        "400": { description: Invalid body }
+        "401": { description: Not signed in }
+        "429": { description: Too frequent }
+  /api/event:
+    post:
+      summary: Analytics beacon (allow-listed event names only; staff excluded)
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, required: [name], properties: { name: { type: string }, props: { type: object }, path: { type: string, maxLength: 200 } } } } }
+      responses:
+        "200": { description: Accepted }
+        "400": { description: Unknown event }
+        "429": { description: Rate limited }
+  /api/cron/tick:
+    get:
+      summary: Dispatch maintenance (expire offers, advance rounds, release scheduled bookings, cleanup)
+      security: [{ cronBearer: [] }]
+      responses:
+        "200": { description: Summary }
+        "401": { description: Bad or missing bearer token }
+  /api/webhooks/razorpay:
+    post:
+      summary: Razorpay webhook (HMAC-SHA256 over raw body, header x-razorpay-signature)
+      responses:
+        "200": { description: Processed }
+        "400": { description: Invalid signature or JSON }
+components:
+  securitySchemes:
+    session: { type: apiKey, in: cookie, name: rs_session }
+    cronBearer: { type: http, scheme: bearer }
+  schemas:
+    Health: { type: object, properties: { status: { type: string }, db: { type: string }, time: { type: string, format: date-time } } }
+    Place: { type: object, properties: { label: { type: string }, lat: { type: number }, lng: { type: number } } }
+    Track:
+      type: object
+      properties:
+        code: { type: string }
+        status: { type: string, enum: [PENDING_DISPATCH, OFFERED, ASSIGNED, EN_ROUTE, ARRIVED, IN_PROGRESS, COMPLETED, CANCELLED, NO_DRIVER_FOUND] }
+        total: { type: integer, description: paise }
+        paymentStatus: { type: string }
+        driver: { type: object, nullable: true }
+        events: { type: array, items: { type: object } }

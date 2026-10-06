@@ -1,0 +1,148 @@
+@import "tailwindcss";
+
+/* ─────────────────────────────────────────────────────────────
+   Design tokens — safety-yellow + charcoal, mobile-first.
+   --brand / --ink are overridden at runtime from Admin → Settings → Brand.
+   ───────────────────────────────────────────────────────────── */
+:root {
+  --brand: #ffc400;
+  --ink: #14161a;
+
+  --brand-strong: color-mix(in oklab, var(--brand) 84%, black);
+  --brand-soft: color-mix(in oklab, var(--brand) 16%, white);
+  --brand-faint: color-mix(in oklab, var(--brand) 7%, white);
+  --ink-2: color-mix(in oklab, var(--ink) 92%, white);
+  --ink-3: color-mix(in oklab, var(--ink) 82%, white);
+  --ink-soft: color-mix(in oklab, var(--ink) 8%, white);
+
+  --paper: #faf9f4;
+  --surface: #ffffff;
+  --line: #e6e3d7;
+  --muted: #666b73;
+
+  --ok: #17935a;
+  --warn: #c77700;
+  --danger: #d93a3f;
+  --info: #2764d8;
+
+  --radius-card: 1rem;
+  --shadow-card: 0 1px 2px rgb(20 22 26 / 0.05), 0 8px 24px -12px rgb(20 22 26 / 0.18);
+  --shadow-lift: 0 2px 4px rgb(20 22 26 / 0.06), 0 18px 40px -16px rgb(20 22 26 / 0.3);
+}
+
+@theme inline {
+  --color-brand: var(--brand);
+  --color-brand-strong: var(--brand-strong);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-faint: var(--brand-faint);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-ink-soft: var(--ink-soft);
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-line: var(--line);
+  --color-muted: var(--muted);
+  --color-ok: var(--ok);
+  --color-warn: var(--warn);
+  --color-danger: var(--danger);
+  --color-info: var(--info);
+  --font-sans: "Inter Variable", "Noto Sans Devanagari Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Barlow Condensed", "Noto Sans Devanagari Variable", "Inter Variable", ui-sans-serif, sans-serif;
+  --shadow-card: var(--shadow-card);
+  --shadow-lift: var(--shadow-lift);
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: clip;
+}
+:lang(hi) body {
+  line-height: 1.7;
+}
+
+h1, h2, h3, .font-display {
+  font-family: var(--font-display);
+  letter-spacing: 0.005em;
+}
+:lang(hi) h1, :lang(hi) h2, :lang(hi) h3, :lang(hi) .font-display {
+  letter-spacing: 0;
+  font-weight: 800;
+}
+
+/* Visible, high-contrast focus for keyboard users */
+:focus-visible {
+  outline: 3px solid var(--info);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+::selection {
+  background: var(--brand);
+  color: var(--ink);
+}
+
+/* Hazard-tape motif used as section dividers and accents */
+.hazard {
+  background-image: repeating-linear-gradient(-45deg, var(--brand) 0 14px, var(--ink) 14px 28px);
+}
+.hazard-soft {
+  background-image: repeating-linear-gradient(-45deg, var(--brand-soft) 0 10px, transparent 10px 20px);
+}
+
+/* Prose for CMS-authored markdown (legal pages, contracts) */
+.prose-doc {
+  max-width: 72ch;
+  color: color-mix(in oklab, var(--ink) 88%, white);
+}
+.prose-doc h2 { font-size: 1.6rem; font-weight: 800; margin: 2rem 0 0.6rem; line-height: 1.15; }
+.prose-doc h3 { font-size: 1.25rem; font-weight: 800; margin: 1.5rem 0 0.4rem; }
+.prose-doc h4 { font-size: 1.05rem; font-weight: 700; margin: 1.2rem 0 0.3rem; font-family: var(--font-sans); }
+.prose-doc p { margin: 0.7rem 0; }
+.prose-doc ul, .prose-doc ol { margin: 0.7rem 0 0.7rem 1.3rem; }
+.prose-doc ul { list-style: disc; }
+.prose-doc ol { list-style: decimal; }
+.prose-doc li { margin: 0.25rem 0; }
+.prose-doc a { color: var(--info); text-decoration: underline; text-underline-offset: 3px; }
+.prose-doc hr { border: 0; border-top: 1px solid var(--line); margin: 1.8rem 0; }
+.prose-doc strong { color: var(--ink); }
+
+/* Leaflet tweaks */
+.leaflet-container { font-family: var(--font-sans); border-radius: inherit; z-index: 0; }
+.rs-pin { background: transparent; border: 0; }
+
+@keyframes pulse-ring {
+  0% { transform: scale(0.8); opacity: 0.8; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+.pulse-ring::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: var(--brand);
+  animation: pulse-ring 1.8s ease-out infinite;
+  z-index: -1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+}
+
+@media print {
+  .no-print, body > header, body > footer, [data-site-header], [data-site-footer] { display: none !important; }
+  body { background: #fff; }
+}
+
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }

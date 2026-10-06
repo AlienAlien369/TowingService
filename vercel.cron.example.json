@@ -1,0 +1,4 @@
+{
+  "$comment": "Copy to vercel.json on a Vercel Pro plan (per-minute crons). On Hobby, call /api/cron/tick every minute from an external scheduler with 'Authorization: Bearer $CRON_SECRET'. Vercel Cron sends that header automatically when CRON_SECRET is set.",
+  "crons": [{ "path": "/api/cron/tick", "schedule": "* * * * *" }]
+}
