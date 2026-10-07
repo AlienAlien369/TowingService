@@ -154,6 +154,7 @@ export function BookingWizard(p: WizardProps) {
   // ── step guards ──
   const step0ok = Boolean(vehicleId && serviceId);
   const step1ok = Boolean(pickup && (!needsDrop || drop));
+  const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
   const phoneOk = /^(\+?91)?[6-9]\d{9}$/.test(phone.replace(/[\s-]/g, ""));
   const scheduleOk = when === "now" || (scheduled && new Date(scheduled).getTime() > Date.now() + 30 * 60_000);
   const step3ok = name.trim().length >= 2 && phoneOk && scheduleOk && (method === "CASH" ? p.pay.cash : p.pay.razorpayEnabled);
@@ -335,10 +336,11 @@ export function BookingWizard(p: WizardProps) {
               <div className="rounded-xl border-2 border-dashed border-ink/30 bg-brand-faint p-4">
                 <p className="flex items-center gap-2 font-extrabold"><Lock className="size-4" /> {b.verifyPhone}</p>
                 <p className="mb-3 text-sm text-muted">{b.verifyPhoneSub}</p>
+                {!emailOk && <p className="mb-3 text-xs text-muted">{b.otpNeedEmail}</p>}
                 {!showOtp ? (
                   <Button variant="dark" disabled={!phoneOk} onClick={() => setShowOtp(true)}>{b.verifyPhone}</Button>
                 ) : (
-                  <OtpLogin locale={locale} d={d.auth} identifier={phone} askName={false} onVerified={() => { setAuthed(true); setShowOtp(false); router.refresh(); }} />
+                  <OtpLogin locale={locale} d={d.auth} identifier={phone} altIdentifier={emailOk ? email.trim() : undefined} altLabel={b.otpByEmail} askName={false} onVerified={() => { setAuthed(true); setShowOtp(false); router.refresh(); }} />
                 )}
               </div>
             )}

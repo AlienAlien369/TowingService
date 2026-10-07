@@ -288,6 +288,8 @@ const en = {
     verifyPhone: "Verify your mobile number",
     verifyPhoneSub: "We'll send a one-time code so only you can manage this booking.",
     verified: "Verified",
+    otpByEmail: "Didn't get an SMS? Send the code to my email instead",
+    otpNeedEmail: "No SMS? Add your email address above and you can get the code by email.",
     confirm: "Confirm booking",
     confirming: "Confirming…",
     outOfArea: "Sorry, this location is outside our current service area.",

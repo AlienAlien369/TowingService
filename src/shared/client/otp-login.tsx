@@ -16,9 +16,12 @@ type Props = {
   /** When set, stays on the page after success instead of redirecting. */
   onVerified?: () => void;
   askName?: boolean;
+  /** Optional fallback address (e.g. the booking email) the code can be sent to instead. */
+  altIdentifier?: string;
+  altLabel?: string;
 };
 
-export function OtpLogin({ locale, d, next, identifier: fixed, onVerified, askName }: Props) {
+export function OtpLogin({ locale, d, next, identifier: fixed, onVerified, askName, altIdentifier, altLabel }: Props) {
   const router = useRouter();
   const [identifier, setIdentifier] = useState(fixed ?? "");
   const [sent, setSent] = useState<{ to: string; devCode?: string } | null>(null);
@@ -34,14 +37,20 @@ export function OtpLogin({ locale, d, next, identifier: fixed, onVerified, askNa
     return () => clearTimeout(t);
   }, [cooldown]);
 
-  function send() {
+  function send(to = identifier) {
     setError(null);
     start(async () => {
-      const r = await requestOtpAction(identifier);
+      const r = await requestOtpAction(to);
       if (!r.ok) return setError(r.error);
       setSent({ to: r.data!.identifier, devCode: r.data!.devCode });
       setCooldown(30);
     });
+  }
+
+  function sendAlt() {
+    setIdentifier(altIdentifier!);
+    setCode("");
+    send(altIdentifier);
   }
 
   function verify() {
@@ -63,6 +72,7 @@ export function OtpLogin({ locale, d, next, identifier: fixed, onVerified, askNa
         </Field>
         {error && <Alert tone="danger">{error}</Alert>}
         <Button type="submit" size="lg" loading={pending}>{d.sendCode}</Button>
+        {altIdentifier && <button type="button" className="text-sm font-semibold underline" disabled={pending} onClick={sendAlt}>{altLabel}</button>}
       </form>
     );
 
@@ -85,9 +95,10 @@ export function OtpLogin({ locale, d, next, identifier: fixed, onVerified, askNa
       {error && <Alert tone="danger">{error}</Alert>}
       <Button type="submit" size="lg" loading={pending} disabled={code.length !== 6}>{d.verify}</Button>
       <div className="flex flex-wrap items-center justify-between gap-2 text-sm font-semibold">
-        <button type="button" className="underline disabled:no-underline disabled:opacity-50" disabled={cooldown > 0 || pending} onClick={send}>
+        <button type="button" className="underline disabled:no-underline disabled:opacity-50" disabled={cooldown > 0 || pending} onClick={() => send()}>
           {d.resend}{cooldown > 0 ? ` (${cooldown}s)` : ""}
         </button>
+        {altIdentifier && sent.to !== altIdentifier && <button type="button" className="underline" disabled={pending} onClick={sendAlt}>{altLabel}</button>}
         {!fixed && <button type="button" className="underline" onClick={() => { setSent(null); setCode(""); setError(null); }}>{d.change}</button>}
       </div>
     </form>
