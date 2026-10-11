@@ -16,6 +16,7 @@ import { OtpLogin } from "./otp-login";
 import { LeadForm } from "./lead-form";
 import { trackClient } from "./track";
 import { openRazorpay } from "./razorpay";
+import { useRevealOnChange } from "./use-reveal";
 
 type VehicleOpt = { id: string; slug: string; name: string; description: string; icon: string };
 type ServiceOpt = { id: string; slug: string; name: string; short: string; icon: string; requiresDrop: boolean; eta: number };
@@ -62,8 +63,10 @@ export function BookingWizard(p: WizardProps) {
   const [error, setError] = useState<string | null>(null);
   const [submitting, startSubmit] = useTransition();
   const started = useRef(false);
+  // Bring the stepper + new step into view when the step changes, so users never land on the footer.
+  const top = useRevealOnChange<HTMLDivElement>(step);
 
-  const service = p.services.find((s) => s.id === serviceId);
+  const service =p.services.find((s) => s.id === serviceId);
   const vehicle = p.vehicles.find((v) => v.id === vehicleId);
   const needsDrop = service?.requiresDrop ?? true;
   const availableServices = useMemo(() => (vehicleId ? p.services.filter((s) => p.combos[vehicleId]?.includes(s.id)) : p.services), [vehicleId, p.services, p.combos]);
@@ -168,7 +171,7 @@ export function BookingWizard(p: WizardProps) {
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_440px]">
-      <div className="min-w-0">
+      <div ref={top} className="min-w-0 scroll-mt-24">
         {/* Stepper */}
         <ol className="mb-6 flex items-center gap-1.5" aria-label="Progress">
           {b.steps.map((s, i) => (

@@ -79,6 +79,24 @@ export const env = {
       return read("RAZORPAY_WEBHOOK_SECRET");
     },
   },
+  /** Firebase Phone Auth. The web config is public by design; the server only verifies ID tokens for `projectId`. */
+  firebase: {
+    get projectId() {
+      return read("FIREBASE_PROJECT_ID").trim();
+    },
+    get apiKey() {
+      return read("FIREBASE_API_KEY").trim();
+    },
+    get authDomain() {
+      return read("FIREBASE_AUTH_DOMAIN").trim();
+    },
+    get appId() {
+      return read("FIREBASE_APP_ID").trim();
+    },
+    get enabled() {
+      return Boolean(this.projectId && this.apiKey && this.authDomain && this.appId);
+    },
+  },
   get cronSecret() {
     return read("CRON_SECRET", "dev-cron-secret");
   },

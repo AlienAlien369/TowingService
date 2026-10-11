@@ -7,6 +7,7 @@ import { Alert, Button, Card, Field, Input, Select, Textarea } from "@/shared/ui
 import { cn } from "@/shared/lib/utils";
 import type { Dict } from "@/i18n";
 import { trackClient } from "./track";
+import { useRevealOnChange } from "./use-reveal";
 
 type Opt = { id: string; name: string };
 const KINDS = [["FLATBED", "Flatbed"], ["WHEEL_LIFT", "Wheel-lift"], ["HOOK_CRANE", "Hook / crane"], ["HYDRAULIC_HEAVY", "Hydraulic heavy recovery"], ["BIKE_CARRIER", "Bike carrier"], ["SERVICE_VAN", "Service van"]];
@@ -38,14 +39,18 @@ export function PartnerApplyForm({ type, locale, d, vehicles, services, defaults
   const [vt, setVt] = useState<string[]>([]);
   const [sv, setSv] = useState<string[]>([]);
   useEffect(() => trackClient("partner_apply_started", { type }), [type]);
+  // The long form is replaced by a short confirmation card — scroll it into view instead of leaving the footer on screen.
+  const top = useRevealOnChange<HTMLDivElement>(done, "start");
 
   if (done)
     return (
-      <Card className="p-8 text-center">
-        <h2 className="text-5xl font-extrabold uppercase">{d.partner.applySubmitted}</h2>
-        <p className="mx-auto mt-2 max-w-md text-muted">{d.partner.applySubmittedSub}</p>
-        <Button size="lg" className="mt-5" onClick={() => router.push(`/${locale}/${type === "company" ? "partner-portal" : "driver"}`)}>{d.partner.goToPortal}</Button>
-      </Card>
+      <div ref={top} className="scroll-mt-28">
+        <Card className="p-8 text-center">
+          <h2 className="text-5xl font-extrabold uppercase">{d.partner.applySubmitted}</h2>
+          <p className="mx-auto mt-2 max-w-md text-muted">{d.partner.applySubmittedSub}</p>
+          <Button size="lg" className="mt-5" onClick={() => router.push(`/${locale}/${type === "company" ? "partner-portal" : "driver"}`)}>{d.partner.goToPortal}</Button>
+        </Card>
+      </div>
     );
 
   return (

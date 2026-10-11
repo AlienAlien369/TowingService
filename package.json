@@ -23,6 +23,7 @@
     "@prisma/adapter-pg": "^7.10.0",
     "@prisma/client": "^7.10.0",
     "clsx": "^2.1.1",
+    "firebase": "^13.0.0",
     "jose": "^6.2.12",
     "leaflet": "^1.9.4",
     "lucide-react": "^1.52.0",

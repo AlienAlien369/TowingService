@@ -26,3 +26,13 @@ Register on DLT, get the OTP template approved, then set `SMS_PROVIDER=msg91`, `
 - Backups: Neon PITR or `pg_dump` for self-hosted.
 - Secrets rotation: changing `AUTH_SECRET` invalidates sessions and pending OTPs.
 - Public OSM endpoints (tiles, Nominatim, OSRM) have fair-use limits — for real traffic host your own, or switch to Google/Mappls.
+
+## Firebase Phone Auth (optional)
+
+1. Firebase console → create/choose a project → **Authentication → Sign-in method → Phone → Enable**.
+2. **Authentication → Settings → Authorized domains**: add your production domain (e.g. `towingservice.vercel.app`).
+3. **Project settings → Your apps → Web app** and copy the config into these environment variables on Vercel/Render, then redeploy:
+   `FIREBASE_PROJECT_ID`, `FIREBASE_API_KEY`, `FIREBASE_AUTH_DOMAIN`, `FIREBASE_APP_ID`.
+4. Behaviour: phone numbers are verified with Firebase (invisible reCAPTCHA). If Firebase cannot deliver the SMS
+   (quota, billing, network) and an email address is known, the code is emailed instead. Email OTP is always available.
+   India SMS on Firebase needs the Blaze plan; the free Spark plan only allows a small number of SMS.

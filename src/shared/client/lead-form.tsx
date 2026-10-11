@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { CheckCircle2 } from "lucide-react";
 import { submitLeadAction } from "@/modules/content/actions";
 import { Alert, Button, Field, Input, Textarea } from "@/shared/ui";
+import { useRevealOnChange } from "./use-reveal";
 
 type Kind = "CONTACT" | "CALLBACK" | "PARTNER_INQUIRY" | "COMING_SOON_AREA";
 
@@ -19,10 +20,13 @@ export function LeadForm({ kind, meta, labels, withMessage, withEmail = true, co
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+  const top = useRevealOnChange<HTMLDivElement>(done, "center");
 
   if (done)
     return (
-      <Alert tone="ok" title={<span className="inline-flex items-center gap-2"><CheckCircle2 className="size-5" /> {labels.sent}</span>} />
+      <div ref={top} className="scroll-mt-24">
+        <Alert tone="ok" title={<span className="inline-flex items-center gap-2"><CheckCircle2 className="size-5" /> {labels.sent}</span>} />
+      </div>
     );
 
   return (

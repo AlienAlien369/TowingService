@@ -67,12 +67,15 @@ export async function checkOtp(raw: string, code: string): Promise<{ ok: true; i
 
 export type VerifyResult = { ok: true; userId: string; isNew: boolean } | { ok: false; error: string };
 
-/** Verifies the code; on success finds/creates the user, marks the channel verified and starts a session. */
+/** Verifies the code, then signs the user in. */
 export async function verifyOtp(raw: string, code: string, profile?: { name?: string }): Promise<VerifyResult> {
   const checked = await checkOtp(raw, code);
   if (!checked.ok) return checked;
-  const id = checked.id;
+  return signInVerified(checked.id, profile);
+}
 
+/** Finds/creates the user for an already-verified identifier, marks the channel verified and starts a session. */
+export async function signInVerified(id: Identifier, profile?: { name?: string }): Promise<VerifyResult> {
   const where = id.channel === "EMAIL" ? { email: id.value } : { phone: id.value };
   const isOwner = id.channel === "EMAIL" && env.adminEmail !== "" && id.value === env.adminEmail;
   let user = await db.user.findUnique({ where });
