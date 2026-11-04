@@ -60,6 +60,8 @@ Set `GOOGLE_MAPS_API_KEY`, then **Admin → Settings → Maps → Google Maps** 
 See `.env.example`. Everything business-facing (brand, phones, address, GST, pricing rules, dispatch tuning, payments flag, notifications) lives in the database and is edited in **Admin → Settings**.
 
 ## Documentation
+Full index: [docs/README.md](docs/README.md). Shareable PDFs: [Business & Project Plan](docs/pdf/RoadSaathi-Business-and-Project-Plan.pdf) · [Product & Developer Handbook](docs/pdf/RoadSaathi-Product-and-Developer-Handbook.pdf) · [Operations & Compliance Handbook](docs/pdf/RoadSaathi-Operations-and-Compliance-Handbook.pdf).
+
 - [Architecture](docs/ARCHITECTURE.md) — modules, boundaries, data flow, state machine
 - [Deployment](docs/DEPLOY.md) — Vercel + Neon, Docker/VPS, cron, SMS/email, scaling notes
 - [Tracking plan](docs/tracking-plan.md) — analytics events and funnels
