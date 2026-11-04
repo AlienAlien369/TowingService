@@ -138,6 +138,28 @@ try {
     await page.close();
     console.log(`✓ docs/pdf/${book.file}`);
   }
+
+  // One PDF per document as well, for sharing a single chapter.
+  const singles = join(out, "individual");
+  mkdirSync(singles, { recursive: true });
+  for (const file of [...new Set(books.flatMap((b) => b.files))]) {
+    const solo = { files: [file] };
+    const { title, html } = renderDoc(file, solo);
+    const name = `RoadSaathi-${file.replace(/\.md$/, "").replace(/[\/_]+/g, "-")}.pdf`;
+    const page = await browser.newPage();
+    await page.setContent(`<!doctype html><html lang="en"><head><meta charset="utf-8"><title>${title}</title><style>${css}</style></head><body class="single">${html}</body></html>`, { waitUntil: "load" });
+    await page.pdf({
+      path: join(singles, name),
+      format: "A4",
+      printBackground: true,
+      margin: { top: "18mm", bottom: "18mm", left: "16mm", right: "16mm" },
+      displayHeaderFooter: true,
+      headerTemplate: `<div style="font:8px Inter,sans-serif;color:#8a8984;width:100%;padding:0 16mm;display:flex;justify-content:space-between"><span>RoadSaathi · ${today}</span><span>Confidential</span></div>`,
+      footerTemplate: `<div style="font:8px Inter,sans-serif;color:#8a8984;width:100%;padding:0 16mm;text-align:right">Page <span class="pageNumber"></span> of <span class="totalPages"></span></div>`,
+    });
+    await page.close();
+    console.log(`✓ docs/pdf/individual/${name}`);
+  }
 } finally {
   await browser.close();
 }

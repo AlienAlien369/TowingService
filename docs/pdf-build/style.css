@@ -63,3 +63,6 @@ li input[type="checkbox"] { margin: 0 2mm 0 -5mm; }
 figure.chart { margin: 4mm 0 6mm; page-break-inside: avoid; }
 figure.chart svg { width: 100%; height: auto; }
 figure.chart figcaption { font-size: 8pt; color: var(--muted); margin-top: 2mm; }
+
+/* Single-document PDFs: no cover, so the first chapter starts on page 1 */
+body.single .chapter { page-break-before: auto; }

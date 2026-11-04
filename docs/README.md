@@ -8,7 +8,7 @@
 | **Product & Developer Handbook** | Product and engineering | [`pdf/RoadSaathi-Product-and-Developer-Handbook.pdf`](pdf/RoadSaathi-Product-and-Developer-Handbook.pdf) |
 | **Operations & Compliance Handbook** | Operations, finance, compliance | [`pdf/RoadSaathi-Operations-and-Compliance-Handbook.pdf`](pdf/RoadSaathi-Operations-and-Compliance-Handbook.pdf) |
 
-The PDFs are generated from the Markdown below. After editing a document, rebuild them:
+Every document below is also available as its own PDF in [`pdf/individual/`](pdf/individual/). The PDFs are generated from the Markdown below. After editing a document, rebuild them:
 
 ```bash
 cd docs/pdf-build && npm install && npm run build
