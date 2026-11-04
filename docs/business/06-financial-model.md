@@ -78,7 +78,6 @@ breakdown mechanic ₹349–1,199. Night (10 p.m.–6 a.m.) ×1.25; surge is off
   <rect x="140" y="156.3" width="60" height="43.7"  rx="4" fill="#2a78d6"/><text class="v" x="170" y="150" text-anchor="middle">256.9</text>
   <rect x="240" y="27.3"  width="60" height="172.7" rx="4" fill="#2a78d6"/><text class="v" x="270" y="44" text-anchor="middle" style="fill:#fff">1,016.2</text>
   <text class="l" x="70" y="218" text-anchor="middle">Y1</text><text class="l" x="170" y="218" text-anchor="middle">Y2</text><text class="l" x="270" y="218" text-anchor="middle">Y3</text>
-
   <text class="t" x="380" y="18">EBITDA (₹ lakh)</text>
   <!-- zero line at y=130; scale 0.5 px per lakh -->
   <line class="ax" x1="380" y1="130" x2="710" y2="130"/>

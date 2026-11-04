@@ -1,0 +1,14 @@
+{
+  "name": "roadsaathi-docs-pdf",
+  "private": true,
+  "type": "module",
+  "version": "1.0.0",
+  "description": "Builds the PDF document packs in docs/pdf from the Markdown in docs/",
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "dependencies": {
+    "marked": "^18.0.0",
+    "playwright": "^1.56.0"
+  }
+}
